@@ -395,6 +395,47 @@ dialog.intake[open]{animation:pop .4s var(--ease)}
 .intake-done strong{font-size:var(--t-lead);font-weight:600;color:var(--mint)}
 .intake-done a{color:var(--mint)}
 
+/* ---------- splash: the logo's vertebrae fall into line, then the screen lifts ---------- */
+html.splash-on{overflow:hidden}
+.splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:var(--bg);color:var(--text);
+  clip-path:inset(0 0 0 0);cursor:pointer;
+  animation:splashOut .95s cubic-bezier(.76,0,.24,1) 2.6s forwards} /* CSS fallback exit: never blocks the page */
+.splash.out{animation:splashOut .95s cubic-bezier(.76,0,.24,1) forwards}
+@keyframes splashOut{to{clip-path:inset(0 0 100% 0);visibility:hidden}}
+.splash::before{content:"";position:absolute;width:min(70vmin,620px);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(147,226,182,.14),rgba(147,226,182,0));animation:glow 1.6s var(--ease) both} /* taste-skill-ignore: soft light behind the mark */
+@keyframes glow{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+.splash-inner{position:relative;display:flex;flex-direction:column;align-items:center;gap:clamp(22px,3vw,34px)}
+.splash.out .splash-inner{animation:innerOut .95s cubic-bezier(.76,0,.24,1) forwards}
+@keyframes innerOut{to{transform:translateY(-14vh);opacity:0}}
+.splash-mark{position:relative;display:flex;flex-direction:column;gap:clamp(9px,1.1vw,13px);padding:10px 18px}
+.splash-mark b{display:block;width:clamp(72px,9vw,104px);height:clamp(20px,2.5vw,28px);border-radius:999px;background:var(--bone);
+  opacity:0;transform:translate(var(--fx),var(--fy)) rotate(var(--fr));
+  animation:snap .9s cubic-bezier(.34,1.56,.64,1) forwards;animation-delay:var(--d)}
+.splash-mark b:nth-child(1){--fx:-70px;--fy:-90px;--fr:-28deg;--tx:0px;--d:.08s}
+.splash-mark b:nth-child(2){--fx:80px;--fy:-20px;--fr:24deg;--tx:clamp(10px,1.3vw,15px);--d:.2s;background:var(--mint)}
+.splash-mark b:nth-child(3){--fx:-50px;--fy:70px;--fr:-16deg;--tx:0px;--d:.32s}
+@keyframes snap{
+  0%{opacity:0;transform:translate(var(--fx),var(--fy)) rotate(var(--fr)) scale(.7)}
+  35%{opacity:1}
+  100%{opacity:1;transform:translateX(var(--tx)) rotate(0) scale(1)}}
+.splash-scan{position:absolute;left:-14px;right:-14px;top:0;height:3px;border-radius:3px;background:var(--mint);
+  opacity:0;animation:scan .7s var(--ease) .95s forwards}
+@keyframes scan{0%{opacity:0;transform:translateY(0)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(var(--scan-h,110px))}}
+.splash-mark.locked b{animation:snap .9s cubic-bezier(.34,1.56,.64,1) forwards,pulse .45s var(--ease)}
+@keyframes pulse{50%{filter:brightness(1.25)}}
+.splash-word{display:flex;font-weight:600;font-size:clamp(3.25rem,2rem + 6vw,7rem);letter-spacing:-0.06em;line-height:.9}
+.splash-word span{display:inline-block;overflow:hidden;padding-bottom:.06em}
+.splash-word span i{display:inline-block;font-style:normal;transform:translateY(110%);animation:rise .8s var(--ease) forwards;animation-delay:calc(.55s + var(--k) * 70ms)}
+@keyframes rise{to{transform:none}}
+.splash-sub{font-size:clamp(.9375rem,.85rem + .3vw,1.0625rem);color:var(--text-2);letter-spacing:-0.005em;opacity:0;transform:translateY(8px);animation:fadeUp .7s var(--ease) 1s forwards}
+@keyframes fadeUp{to{opacity:1;transform:none}}
+.splash-bar{position:absolute;left:50%;bottom:clamp(36px,7vh,64px);width:min(220px,50vw);height:3px;border-radius:3px;background:var(--surface-2);overflow:hidden;transform:translateX(-50%)}
+.splash-bar i{position:absolute;inset:0;background:var(--mint);transform-origin:left;transform:scaleX(0);animation:load 1.6s cubic-bezier(.65,0,.35,1) .1s forwards}
+@keyframes load{to{transform:scaleX(1)}}
+.splash-skip{position:absolute;right:max(20px, env(safe-area-inset-right, 0px));bottom:clamp(28px,6vh,56px);font-size:var(--t-small);color:var(--text-2);opacity:0;animation:fadeUp .6s var(--ease) .9s forwards}
+@media (prefers-reduced-motion:reduce){.splash{display:none !important}}
+
 /* ---------- entrances (content stays visible without script) ---------- */
 .js .rv{opacity:0;transform:translate3d(0,28px,0);transition:opacity .9s var(--ease),transform .9s var(--ease);transition-delay:calc(var(--i,0) * 80ms)}
 .js .rv.in{opacity:1;transform:none}
@@ -501,6 +542,42 @@ dialog.intake[open]{animation:pop .4s var(--ease)}
 <script>document.documentElement.classList.add('js')</script>
 </head>
 <body>
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-inner">
+    <div class="splash-mark" id="splash-mark"><b></b><b></b><b></b><span class="splash-scan"></span></div>
+    <div class="splash-word"><span><i style="--k:0">E</i></span><span><i style="--k:1">o</i></span><span><i style="--k:2">l</i></span><span><i style="--k:3">a</i></span></div>
+    <p class="splash-sub">Spine &amp; Posture · Downtown Orlando</p>
+  </div>
+  <div class="splash-bar"><i></i></div>
+  <span class="splash-skip">Tap to skip</span>
+</div>
+<script>
+/* Splash: once per visit, skippable, off for reduced motion. Runs before the page paints. */
+(function(){
+  var el=document.getElementById("splash"),root=document.documentElement;
+  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var seen=false;try{seen=sessionStorage.getItem("eolaSplash")==="1"}catch(e){}
+  function fire(){window.eolaSplashDone=true;try{window.dispatchEvent(new Event("eola:splash-out"))}catch(e){}}
+  if(!el)return;
+  if(reduce||seen){el.parentNode.removeChild(el);window.eolaSplashDone=true;return;}
+  try{sessionStorage.setItem("eolaSplash","1")}catch(e){}
+  root.classList.add("splash-on");window.eolaSplashDone=false;
+  var mark=document.getElementById("splash-mark");
+  requestAnimationFrame(function(){if(mark)mark.style.setProperty("--scan-h",mark.offsetHeight+"px");});
+  setTimeout(function(){if(mark)mark.classList.add("locked")},1500);
+  var gone=false;
+  function end(){
+    if(gone)return;gone=true;
+    el.classList.add("out");root.classList.remove("splash-on");fire();
+    setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},1000);
+  }
+  var t=setTimeout(end,1900);
+  el.addEventListener("click",function(){clearTimeout(t);end()});
+  window.addEventListener("keydown",function k(){window.removeEventListener("keydown",k);clearTimeout(t);end()});
+  /* safety: whatever happens, unlock scrolling in time with the CSS fallback */
+  setTimeout(function(){root.classList.remove("splash-on");if(!gone){gone=true;fire();}},3600);
+})();
+</script>
 <a class="skip" href="#main">Skip to content</a>
 
 <header class="site-head" id="site-head">
@@ -948,7 +1025,9 @@ dialog.intake[open]{animation:pop .4s var(--ease)}
     words.forEach(function(w,i){var o=document.createElement("span");o.className="w";o.setAttribute("aria-hidden","true");var s=document.createElement("span");s.style.setProperty("--d",i);s.textContent=w;o.appendChild(s);h1.appendChild(o);if(i<words.length-1)h1.appendChild(document.createTextNode(" "));});
   }
   var hero=$("#top");
-  requestAnimationFrame(function(){requestAnimationFrame(function(){hero.classList.add("ready")})});
+  function heroGo(){requestAnimationFrame(function(){requestAnimationFrame(function(){hero.classList.add("ready")})});}
+  if(window.eolaSplashDone===false){window.addEventListener("eola:splash-out",heroGo,{once:true});}
+  else heroGo();
 
   /* ---------- entrances ---------- */
   var rv=$$(".rv,.reveal-img,.mega");
